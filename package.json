@@ -1,6 +1,6 @@
 {
   "name": "nci-yaml-reader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "YAML config files reader for nci",
   "main": "lib/index.js",
   "scripts": {
