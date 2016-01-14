@@ -39,15 +39,33 @@ describe('Plugin', function() {
 	});
 
 	describe('load', function() {
-		var loader,
-			revertFs,
-			fsReadFileSpy = sinon.stub().callsArgWithAsync(2, null, 'yaml content'),
-			revertYaml,
-			yamlLoadSpy = sinon.stub().returns({json: true});
+		var makeSpies = function(params) {
+			return {
+				fsReadFile: sinon.stub().callsArgWithAsync(
+					2, params.readFileError || null, params.yamlText
+				),
+				yamlLoadSpy: (
+					params.loadedJson ? sinon.stub().returns(params.loadedJson) :
+						sinon.stub().throws()
+				)
+			};
+		};
+
+		var setSpies = function(spies) {
+			return plugin.__set__({
+				fs: {readFile: spies.fsReadFile},
+				yaml: {load: spies.yamlLoadSpy}
+			});
+		};
+
+		var loader, spies, revertSpies;
 
 		before(function() {
-			revertFs = plugin.__set__('fs', {readFile: fsReadFileSpy});
-			revertYaml = plugin.__set__('yaml', {load: yamlLoadSpy});
+			spies = makeSpies({
+				yamlText: 'yaml text',
+				loadedJson: {json: true}
+			});
+			revertSpies = setSpies(spies);
 		});
 
 		it('should be done without errors', function(done) {
@@ -59,9 +77,13 @@ describe('Plugin', function() {
 			});
 		});
 
+		it('read file should be called with proper args', function() {
+			expect(spies.fsReadFile.calledOnce).equal(true);
+			expect(spies.fsReadFile.getCall(0).args[0]).equal('/tmp/test.yaml');
+		});
+
 		after(function() {
-			revertFs();
-			revertYaml();
+			revertSpies();
 		});
 	});
 });
