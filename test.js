@@ -4,7 +4,8 @@ var expect = require('expect.js'),
 	sinon = require('sinon'),
 	rewire = require('rewire'),
 	plugin = rewire('./lib'),
-	yaml = require('js-yaml');
+	yaml = require('js-yaml'),
+	schema = plugin.__get__('schema');
 
 describe('Plugin', function() {
 	function BaseReaderLoader() {
@@ -95,9 +96,9 @@ describe('Plugin', function() {
 
 			it('shuold call yaml load with proper args', function() {
 				expect(spies.yamlLoad.calledOnce).equal(true);
-				expect(spies.yamlLoad.getCall(0).args[0]).equal(
-					spiesParams.yamlText
-				);
+				var yamlLoadCall = spies.yamlLoad.getCall(0);
+				expect(yamlLoadCall.args[0]).equal(spiesParams.yamlText);
+				expect(yamlLoadCall.args[1]).eql({schema: schema});
 			});
 
 			it('should call result callback without error', function() {
@@ -161,9 +162,12 @@ describe('Plugin', function() {
 });
 
 describe('yaml load with such settings', function() {
+	var yamlLoad = function(text) {
+		return yaml.load(text, {schema: schema});
+	};
 
 	it('should correctly parse basic structures', function() {
-		var json = yaml.load([
+		var json = yamlLoad([
 			'a: 1',
 			'b: {c: 2}',
 			'd: [1, 2, 3]',
@@ -191,15 +195,23 @@ describe('yaml load with such settings', function() {
 	});
 
 	it('should correctly parse regexp', function() {
-		expect(String(yaml.load('!!js/regexp /[a-z]+/'))).eql(String(/[a-z]+/));
-		expect(String(yaml.load('!!js/regexp ^[a-z]+'))).eql(String(/^[a-z]+/));
+		expect(String(yamlLoad('!!js/regexp /[a-z]+/'))).eql(String(/[a-z]+/));
+		expect(String(yamlLoad('!!js/regexp ^[a-z]+'))).eql(String(/^[a-z]+/));
 	});
 
 	it('should correctly parse functions', function() {
 		expect(
-			String(yaml.load('!!js/function \'function(){return 123;}\''))
+			String(yamlLoad('!!js/function \'function(){return 123;}\''))
 		).eql(
 			'function anonymous() {\nreturn 123;\n}'
+		);
+	});
+
+	it('should correctly parse env vars', function() {
+		expect(
+			String(yamlLoad('!env HOME'))
+		).eql(
+			process.env.HOME
 		);
 	});
 
