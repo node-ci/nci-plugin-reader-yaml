@@ -3,7 +3,8 @@
 var expect = require('expect.js'),
 	sinon = require('sinon'),
 	rewire = require('rewire'),
-	plugin = rewire('./lib');
+	plugin = rewire('./lib'),
+	yaml = require('js-yaml');
 
 describe('Plugin', function() {
 	function BaseReaderLoader() {
@@ -41,12 +42,13 @@ describe('Plugin', function() {
 	describe('load', function() {
 		var makeSpies = function(params) {
 			return {
+				resultCallback: sinon.stub(),
 				fsReadFile: sinon.stub().callsArgWithAsync(
 					2, params.readFileError || null, params.yamlText
 				),
-				yamlLoadSpy: (
+				yamlLoad: (
 					params.loadedJson ? sinon.stub().returns(params.loadedJson) :
-						sinon.stub().throws()
+						sinon.stub().throws(params.yamlLoadError)
 				)
 			};
 		};
@@ -54,36 +56,151 @@ describe('Plugin', function() {
 		var setSpies = function(spies) {
 			return plugin.__set__({
 				fs: {readFile: spies.fsReadFile},
-				yaml: {load: spies.yamlLoadSpy}
+				yaml: {load: spies.yamlLoad}
 			});
 		};
 
 		var loader, spies, revertSpies;
 
-		before(function() {
-			spies = makeSpies({
-				yamlText: 'yaml text',
-				loadedJson: {json: true}
-			});
-			revertSpies = setSpies(spies);
-		});
+		var spiesParams;
 
-		it('should be done without errors', function(done) {
+		var initBeforeHook = function() {
 			loader = new constructor();
-			loader._load('/tmp', 'test', function(err, json) {
-				expect(err).not.ok();
-				expect(json).eql({json: true});
-				done();
-			});
-		});
+			spies = makeSpies(spiesParams);
+			revertSpies = setSpies(spies);
+		};
 
-		it('read file should be called with proper args', function() {
-			expect(spies.fsReadFile.calledOnce).equal(true);
-			expect(spies.fsReadFile.getCall(0).args[0]).equal('/tmp/test.yaml');
-		});
-
-		after(function() {
+		var afterHook = function() {
 			revertSpies();
+		};
+
+		describe('with correct params', function() {
+			before(function() {
+				spiesParams = {
+					yamlText: 'yaml text',
+					loadedJson: {json: true}
+				};
+				initBeforeHook();
+			});
+
+			it('should be done without sync errors', function() {
+				loader._load('/tmp', 'test', spies.resultCallback);
+			});
+
+			it('should call read file with proper args', function() {
+				expect(spies.fsReadFile.calledOnce).equal(true);
+				expect(spies.fsReadFile.getCall(0).args[0]).equal('/tmp/test.yaml');
+				expect(spies.fsReadFile.getCall(0).args[1]).equal('utf8');
+			});
+
+			it('shuold call yaml load with proper args', function() {
+				expect(spies.yamlLoad.calledOnce).equal(true);
+				expect(spies.yamlLoad.getCall(0).args[0]).equal(
+					spiesParams.yamlText
+				);
+			});
+
+			it('should call result callback without error', function() {
+				expect(spies.resultCallback.calledOnce).equal(true);
+				expect(spies.resultCallback.getCall(0).args[0]).not.ok();
+			});
+
+			it('should call result callback with proper json', function() {
+				expect(spies.resultCallback.getCall(0).args[0]).not.ok();
+			});
+
+			after(afterHook);
+		});
+
+		describe('with read file error', function() {
+			before(function() {
+				spiesParams = {
+					readFileError: new Error('read file error')
+				};
+				initBeforeHook();
+			});
+
+			it('should be done without sync errors', function() {
+				loader._load('/tmp', 'test', spies.resultCallback);
+			});
+
+			it('should call result callback with that error', function() {
+				expect(spies.resultCallback.calledOnce).equal(true);
+				var err = spies.resultCallback.getCall(0).args[0];
+				expect(err).ok();
+				expect(err).a(Error);
+				expect(err.message).equal(spiesParams.readFileError.message);
+			});
+
+			after(afterHook);
+		});
+
+		describe('with yaml load error', function() {
+			before(function() {
+				spiesParams = {
+					yamlLoadError: new Error('yaml load error')
+				};
+				initBeforeHook();
+			});
+
+			it('should be done without sync errors', function() {
+				loader._load('/tmp', 'test', spies.resultCallback);
+			});
+
+			it('should call result callback with that error', function() {
+				expect(spies.resultCallback.calledOnce).equal(true);
+				var err = spies.resultCallback.getCall(0).args[0];
+				expect(err).ok();
+				expect(err).a(Error);
+				expect(err.message).equal(spiesParams.yamlLoadError.message);
+			});
+
+			after(afterHook);
 		});
 	});
+});
+
+describe('yaml load with such settings', function() {
+
+	it('should correctly parse basic structures', function() {
+		var json = yaml.load([
+			'a: 1',
+			'b: {c: 2}',
+			'd: [1, 2, 3]',
+			'e:',
+			'  - 1',
+			'  - 2',
+			'  - 3',
+			'f:',
+			'  a: 1',
+			'  b: 2',
+			'  c: 3',
+			'g: >',
+			'  multiline',
+			'  string'
+		].join('\n'));
+
+		expect(json).eql({
+			a: 1,
+			b: { c: 2 },
+			d: [ 1, 2, 3 ],
+			e: [ 1, 2, 3 ],
+			f: { a: 1, b: 2, c: 3 },
+			g: 'multiline string\n'
+		});
+	});
+
+	it('should correctly parse regexp', function() {
+		expect(String(yaml.load('!!js/regexp /[a-z]+/'))).eql(String(/[a-z]+/));
+		expect(String(yaml.load('!!js/regexp ^[a-z]+'))).eql(String(/^[a-z]+/));
+	});
+
+	it('should correctly parse functions', function() {
+		expect(
+			String(yaml.load('!!js/function \'function(){return 123;}\''))
+		).eql(
+			'function anonymous() {\nreturn 123;\n}'
+		);
+	});
+
 });
