@@ -208,10 +208,18 @@ describe('yaml load with such settings', function() {
 	});
 
 	it('should correctly parse env vars', function() {
-		expect(
-			String(yamlLoad('!env HOME'))
-		).eql(
-			process.env.HOME
+		expect(function() {
+			yamlLoad('!env HOME');
+		}).throwException(/cannot resolve a node with !<!env> explicit tag/);
+
+		var home = process.env.HOME;
+		expect(String(yamlLoad('!env $HOME'))).eql(home);
+
+		expect(String(yamlLoad('!env $HOME/tmp'))).eql(home + '/tmp');
+
+		var lcName = process.env.LC_NAME;
+		expect(String(yamlLoad('!env $HOME and $LC_NAME'))).eql(
+			home + ' and ' + lcName
 		);
 	});
 
