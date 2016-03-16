@@ -13,8 +13,11 @@ describe('Plugin', function() {
 
 	var registerSpy = sinon.stub(),
 		app = {
-			lib: {BaseReaderLoader: BaseReaderLoader},
-			reader: {register: registerSpy}
+			lib: {
+				reader: {
+					register: registerSpy, BaseReaderLoader: BaseReaderLoader
+				}
+			}
 		};
 
 	var constructor;
@@ -35,7 +38,7 @@ describe('Plugin', function() {
 		it('with constructor', function() {
 			constructor = registerSpy.getCall(0).args[1];
 			expect(constructor).a('function');
-			expect(constructor.prototype).a(app.lib.BaseReaderLoader);
+			expect(constructor.prototype).a(app.lib.reader.BaseReaderLoader);
 			expect(constructor.prototype._load).a('function');
 		});
 	});
