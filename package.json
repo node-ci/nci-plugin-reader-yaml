@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/node-ci/nci-yaml-reader",
   "dependencies": {
-    "js-yaml": "3.3.1",
+    "js-yaml": "3.13.1",
     "twostep": "0.4.1",
     "underscore": "1.8.3"
   },
