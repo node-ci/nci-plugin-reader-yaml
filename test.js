@@ -204,9 +204,9 @@ describe('yaml load with such settings', function() {
 
 	it('should correctly parse functions', function() {
 		expect(
-			String(yamlLoad('!!js/function \'function(){return 123;}\''))
-		).eql(
-			'function anonymous() {\nreturn 123;\n}'
+			String(yamlLoad('!!js/function \'function (){return 123;}\''))
+		).match(
+			/function anonymous\((\n)?(\/\*``\*\/)?(\n)?\) \{\nreturn 123;\n\}/
 		);
 	});
 
