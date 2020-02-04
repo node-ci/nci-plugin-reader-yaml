@@ -1,2 +1,4 @@
-.npmignore
 test
+.npmignore
+.npmrc
+.travis.yml
