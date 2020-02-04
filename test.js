@@ -206,7 +206,7 @@ describe('yaml load with such settings', function() {
 		expect(
 			String(yamlLoad('!!js/function \'function (){return 123;}\''))
 		).match(
-			/function anonymous\((\n)?(\/\*``\*\/)?(\n)?\) \{\nreturn 123;\n\}/
+			/function anonymous\((\n)?(\/\*(``)?\*\/)?(\n)?\) \{\nreturn 123;\n\}/
 		);
 	});
 
