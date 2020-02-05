@@ -9,3 +9,4 @@ property).
 
 [![Npm version](https://img.shields.io/npm/v/nci-yaml-reader.svg)](https://www.npmjs.org/package/nci-yaml-reader)
 [![Build Status](https://travis-ci.org/node-ci/nci-yaml-reader.svg?branch=master)](https://travis-ci.org/node-ci/nci-yaml-reader)
+[![Known Vulnerabilities](https://snyk.io/test/npm/nci-yaml-reader/badge.svg)](https://snyk.io/test/npm/nci-yaml-reader)
