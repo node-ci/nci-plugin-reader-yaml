@@ -23,7 +23,7 @@
   "dependencies": {
     "js-yaml": "3.13.1",
     "twostep": "0.4.1",
-    "underscore": "1.8.3"
+    "underscore": "1.12.1"
   },
   "peerDependencies": {
     "nci": "0.10.x || 1.0.x"
