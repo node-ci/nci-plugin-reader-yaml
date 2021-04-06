@@ -14,4 +14,13 @@ node_js:
   - "0.10"
 
 script:
-  - npm test
+  - >
+    nodeVersionMajor=`node -e "console.log(process.versions.node.split('.')[0])"`;
+
+    if [ $nodeVersionMajor -ge 10 ]; then
+      npm test;
+    else
+      # install old mocha for old nodejs versions
+      npm install mocha@3;
+      npm test;
+    fi;
